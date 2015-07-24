@@ -1,7 +1,7 @@
 package actors
 
-import actors.StationActor.GetResult
-import actors.StationsDBActor.{UnknownStation, GetByNumber}
+import actors.StationActor.{ValueChanged, GetResult}
+import actors.StationsDBActor.{SubscribeAll, UnknownStation, GetByNumber}
 import akka.actor._
 import akka.event.LoggingReceive
 import models.{Position, Station}
@@ -20,10 +20,8 @@ class WebSocketActor(stationsDB: ActorRef, out: ActorRef) extends Actor {
       (request(0).toOption,request(1).toOption) match {
         case (Some(JsString("get")),Some(JsNumber(number))) =>
           stationsDB ! GetByNumber(number.toIntExact)
-        case (Some(JsString("subscribe")),Some(JsNumber(number))) =>
-
-        case (Some(JsString("unsubscribe")),Some(JsNumber(number))) =>
-
+        case (Some(JsString("subscribeAll")),None) =>
+          stationsDB ! SubscribeAll
         case _ =>
           error(s"unknown command")
       }
@@ -31,6 +29,15 @@ class WebSocketActor(stationsDB: ActorRef, out: ActorRef) extends Actor {
       out ! Json.arr(JsString("station"), Json.toJson(station))
     case UnknownStation(number) =>
       error(s"unknown station $number")
+    case ValueChanged(number, key, oldValue, newValue) =>
+      out ! Json.arr(JsString("update"),
+        Json.obj(
+          "number" -> number,
+          "key" -> key,
+          "oldValue" -> oldValue,
+          "newValue" -> newValue
+        )
+      )
   }
 
   def error(message: String) = out ! Json.arr(JsString("error"), Json.obj(

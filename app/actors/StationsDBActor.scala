@@ -3,6 +3,7 @@ package actors
 import akka.actor._
 import akka.event.LoggingReceive
 import models.Station
+import scala.collection.immutable.HashMap
 
 object StationsDBActor {
   def props = Props[StationsDBActor]
@@ -10,13 +11,16 @@ object StationsDBActor {
   case class GetByNumber(number: Int)
   case class Upsert(station: Station)
   case class UnknownStation(number: Int)
+  object Count
+  case class CountResult(nb: Int)
+  object SubscribeAll
 }
 
 class StationsDBActor extends Actor {
   import StationsDBActor._
   import StationActor._
 
-  var stations = Map[Int,ActorRef]()
+  var stations = HashMap[Int,ActorRef]()
 
   def createStationActor(station: Station) = context.actorOf(StationActor.props(station),s"s${station.number}")
 
@@ -28,13 +32,18 @@ class StationsDBActor extends Actor {
         case None =>
           stations += station.number -> createStationActor(station)
       }
-
     case GetByNumber(number) =>
       stations.get(number) match {
         case Some(actorRef) =>
           actorRef ! Get(sender())
         case None =>
           sender() ! UnknownStation(number)
+      }
+    case Count =>
+      sender() ! CountResult(stations.size)
+    case SubscribeAll =>
+      stations.values.foreach {
+        _ ! Subscribe(sender())
       }
   }
 }
