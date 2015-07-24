@@ -3,4 +3,5 @@
 # ~~~~
 
 # Home page
-GET     /                           controllers.Application.socket
+GET     /socket                           controllers.Application.socket
+GET     /update                     controllers.Application.update
