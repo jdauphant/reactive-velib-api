@@ -8,13 +8,15 @@ import play.api.libs.json._
 import play.api.libs.ws._
 import play.api.mvc._
 import akka.actor._
-import akka.pattern.ask
 import javax.inject._
 
 import StationsDBActor._
 
 import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 @Singleton
 class Application @Inject() (system: ActorSystem, ws: WSClient) extends Controller {
@@ -30,20 +32,30 @@ class Application @Inject() (system: ActorSystem, ws: WSClient) extends Controll
     WebSocketActor.props(stationsDBActor,out)
   }
 
-  def update = Action.async {
-    ws.url(s"https://api.jcdecaux.com/vls/v1/stations?contract=$contract&apiKey=$apiKey").get().map {
-      _.json.validate[List[Station]].fold(
-      validationErrors => {
-        Logger.error(validationErrors.toString())
-        InternalServerError
-      }, {
-        case stations =>
-          stations.map {
-            stationsDBActor ! Upsert(_)
-          }
-          Ok
-      })
-    }
+  system.scheduler.schedule(10.millisecond, 3.seconds) {
+    updateAllStations
+  }
 
+  def update = Action.async {
+    updateAllStations.map {
+      case Some(_) =>
+        Ok
+      case None =>
+        InternalServerError
+    }
+  }
+
+  def updateAllStations: Future[Option[List[Station]]] = ws.url(s"https://api.jcdecaux.com/vls/v1/stations?contract=$contract&apiKey=$apiKey").get().map {
+    _.json.validate[List[Station]].fold(
+    validationErrors => {
+      Logger.error(validationErrors.toString())
+      None
+    }, {
+      case stations =>
+        stations.map {
+          stationsDBActor ! Upsert(_)
+        }
+        Some(stations)
+    })
   }
 }
