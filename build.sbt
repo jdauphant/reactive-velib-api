@@ -1,4 +1,4 @@
-name := """play-akka-demo"""
+name := """reactive-velib-api"""
 
 version := "1.0-SNAPSHOT"
 
