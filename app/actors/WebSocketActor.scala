@@ -1,7 +1,7 @@
 package actors
 
 import actors.StationActor.{ValueChanged, GetResult}
-import actors.StationsDBActor.{SubscribeAll, UnknownStation, GetByNumber}
+import actors.StationsDBActor.{GetAll, SubscribeAll, UnknownStation, GetByNumber}
 import akka.actor._
 import akka.event.LoggingReceive
 import models.{Position, Station}
@@ -22,6 +22,8 @@ class WebSocketActor(stationsDB: ActorRef, out: ActorRef) extends Actor {
           stationsDB ! GetByNumber(number.toIntExact)
         case (Some(JsString("subscribeAll")),None) =>
           stationsDB ! SubscribeAll
+        case (Some(JsString("getAll")),None) =>
+          stationsDB ! GetAll
         case _ =>
           error(s"unknown command")
       }

@@ -9,6 +9,7 @@ object StationsDBActor {
   def props = Props[StationsDBActor]
 
   case class GetByNumber(number: Int)
+  object GetAll
   case class Upsert(station: Station)
   case class UnknownStation(number: Int)
   object Count
@@ -38,6 +39,10 @@ class StationsDBActor extends Actor {
           actorRef ! Get(sender())
         case None =>
           sender() ! UnknownStation(number)
+      }
+    case GetAll =>
+      stations.values.foreach {
+        _ ! Get(sender())
       }
     case Count =>
       sender() ! CountResult(stations.size)
