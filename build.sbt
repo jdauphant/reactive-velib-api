@@ -10,7 +10,6 @@ resolvers ++= Seq(
   "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases"
 )
 
-
 libraryDependencies ++= Seq(
   ws,
   specs2 % Test
